@@ -16,6 +16,7 @@ private:
 
     void Mine();
     
+    
 public:
 
     void SetMinerID(int i_Id) { this->m_MinerID = i_Id; }
