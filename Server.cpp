@@ -28,10 +28,17 @@ void Server:: ManageBlockChain()
         {
             pthread_cond_wait(&g_newSuggestedBlock,&g_SuggestedBlockLock);
         }
-        if(verifyProofOfWork(g_SuggestedBlock))
+        
+        try
         {
+            verifyProofOfWork(g_SuggestedBlock);
             appendNewBlock(g_SuggestedBlock);
         }
+        catch(const Exception& error)
+        {
+            error.Print();
+        }
+
           g_BlockNeedToBeChecked = false;
           pthread_mutex_unlock(&g_SuggestedBlockLock);
           pthread_cond_broadcast(&g_newSuggestedBlock);
@@ -49,29 +56,57 @@ bool Server:: verifyProofOfWork(const BLOCK_T& i_SuggestedBlock)
     ,i_SuggestedBlock.relayed_by};
     ulong checkSum;
 
+    m_LastBlockThatWasChecked = i_SuggestedBlock;
     checkSum = crc32(i_SuggestedBlock.prev_hash,(const Bytef*)crcParams,sizeof(crcParams));
-    if(i_SuggestedBlock.prev_hash == g_BlockChainHead.hash)
-    {
-        blockVerified = checkSrcAndBlockHash(i_SuggestedBlock,checkSum);
-    }
+    blockVerified = checkSrcAndBlockHash(i_SuggestedBlock,checkSum);
 
     return blockVerified;
 }
 
 bool Server:: checkSrcAndBlockHash(const BLOCK_T& i_SuggestedBlock, ulong i_CheckSum) const
 {
-    bool validSrcAndHash = false;
+    bool verified = false;
 
-    if(i_CheckSum == i_SuggestedBlock.hash)
+    if(i_SuggestedBlock.prev_hash == g_BlockChainHead.hash)
     {
-        if(i_SuggestedBlock.hash < m_DifficultyLimit)
+        if(i_SuggestedBlock.height - 1 == g_BlockChainHead.height)
+        {
+            if(i_CheckSum == i_SuggestedBlock.hash)
             {
-                validSrcAndHash = true;
+                if(i_SuggestedBlock.hash < this->m_DifficultyLimit)
+                {
+                    verified = true;
+                }
+                else
+                {
+                    std::string meassage = ", not eneogh leading 0's";
+                    throw Exception("difficulty", meassage, i_SuggestedBlock);      
+                }
             }
+            else
+            {
+                std::string meassage = ", received 0x" + Exception::toHexString(i_SuggestedBlock.hash) + 
+                                       " but calculated 0x" + Exception::toHexString(i_CheckSum);
+                throw Exception("hash", meassage, i_SuggestedBlock);
+            }
+        }
+        else
+        {
+            std::string meassage = ", received " + std::to_string(i_SuggestedBlock.height) + 
+                                       " but expected " + std::to_string(g_BlockChainHead.height);
+                throw Exception("height", meassage, i_SuggestedBlock);
+        }     
     }
+    else
+    {
+        std::string meassage = ", received 0x" + Exception::toHexString(i_SuggestedBlock.prev_hash) + 
+                               " but expected 0x" + Exception::toHexString(g_BlockChainHead.hash) + "\n";
+        throw Exception("prev_hash", meassage, i_SuggestedBlock);
+    }    
 
-    return validSrcAndHash;
+    return verified;
 }
+
 
 void Server:: appendNewBlock(BLOCK_T& i_NewBlockChinHead) const
 {

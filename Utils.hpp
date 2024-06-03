@@ -7,6 +7,8 @@
 #include <zlib.h>
 #include <math.h>
 #include <ctime>
+#include <string>
+#include <sstream>
 
 #define NUMBER_OF_MINERS 4
 #define SIZE_OF_CRC_RESULT 32

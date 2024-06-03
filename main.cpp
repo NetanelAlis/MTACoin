@@ -12,7 +12,17 @@ bool g_BlockNeedToBeChecked = false;
 
 int main(int argc, char* argv[])
 {
-    int difficulty = 16;
+    int difficulty = 6;
+    try
+    {
+        Exception::ValidateDifficulty(difficulty);
+    }
+    catch(const Exception& error)
+    {
+        error.Print();
+        exit(1);
+    }
+    
     ulong difficultyLimit = pow((float)2,(float)(SIZE_OF_CRC_RESULT-difficulty));
     Server server;
     Miner miners[NUMBER_OF_MINERS];
