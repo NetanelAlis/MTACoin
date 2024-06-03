@@ -4,9 +4,13 @@
 void* Miner::MinerFlow(void* i_Miner)
 {
     Miner* miner = static_cast<Miner*>(i_Miner);
+    
+    if(miner->m_MinerID == DUMMY_MINER_ID)
+    {
+        miner->dummyMinerFlow();
+    }
 
     miner->Mine();
-
     return i_Miner;
 }
 
@@ -24,23 +28,7 @@ void Miner::Mine()
         getHash();
         if(isValidHash())
         {
-            m_BlockWasCheckedByTheServer = false;
-            while(m_BlockWasCheckedByTheServer == false)
-            {
-                pthread_mutex_lock(&g_SuggestedBlockLock);
-                if(g_BlockNeedToBeChecked == true)
-                {
-                    pthread_cond_wait(&g_newSuggestedBlock,&g_SuggestedBlockLock);
-                }
-                if(g_BlockNeedToBeChecked == false)
-                {
-                    suggestBlock();
-                    printSuggestion();
-                }
-                pthread_mutex_unlock(&g_SuggestedBlockLock);
-                pthread_cond_broadcast(&g_newSuggestedBlock);
-            }
-
+            applyForSuggestion();
         }
 
     }
@@ -102,4 +90,39 @@ void Miner::printSuggestion() const
     std::cout << "Miner #" << m_MinerID;
     std::cout << ": mined a new block #" << m_BlockHeight;
     std::cout << " with the hash " <<  std::hex << std::showbase << m_Hash << std::dec << std::endl;
+}
+
+void Miner:: applyForSuggestion()
+{
+    m_BlockWasCheckedByTheServer = false;
+    
+    while(m_BlockWasCheckedByTheServer == false)
+    {
+        pthread_mutex_lock(&g_SuggestedBlockLock);
+        if(g_BlockNeedToBeChecked == true)
+        {
+            pthread_cond_wait(&g_newSuggestedBlock,&g_SuggestedBlockLock);
+        }
+        if(g_BlockNeedToBeChecked == false)
+        {
+            suggestBlock();
+            printSuggestion();
+        }
+
+        pthread_mutex_unlock(&g_SuggestedBlockLock);
+        pthread_cond_broadcast(&g_newSuggestedBlock);
+    }
+
+}
+
+void Miner::dummyMinerFlow()
+{
+    m_Hash = m_DifficultyLimit;
+
+    while(true)
+    {
+        applyForSuggestion();
+        sleep(1);
+    }
+
 }

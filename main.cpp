@@ -12,12 +12,14 @@ bool g_BlockNeedToBeChecked = false;
 
 int main(int argc, char* argv[])
 {
-    int difficulty = atoi(argv[1]);
+    int difficulty = 16;
     ulong difficultyLimit = pow((float)2,(float)(SIZE_OF_CRC_RESULT-difficulty));
     Server server;
     Miner miners[NUMBER_OF_MINERS];
+    Miner dummyMiner;
     pthread_t serverThreadID;
     pthread_t minerThreadsIDs[NUMBER_OF_MINERS];
+    pthread_t dummyMinerID;
     void* res;
     server.CreateGenesisBlock(g_BlockChainHead,difficulty);
     server.CreateGenesisBlock(g_SuggestedBlock,difficulty);
@@ -34,10 +36,14 @@ int main(int argc, char* argv[])
         pthread_create(&minerThreadsIDs[i], NULL, Miner::MinerFlow, &miners[i]);
     }
 
+    dummyMiner.SetMinerID(DUMMY_MINER_ID);
+    dummyMiner.SetfficultyLimit(difficultyLimit);
+    pthread_create(&dummyMinerID, NULL, Miner::MinerFlow, &dummyMiner);
     for (size_t i = 0; i < NUMBER_OF_MINERS; i++)
     {
        pthread_join(minerThreadsIDs[i],&res);
     }
 
+    pthread_join(dummyMinerID,&res);
     pthread_join(serverThreadID,&res);
 }
