@@ -5,7 +5,7 @@
 
 class Server
 {
-    u_long m_DifficultyLimit;
+    ulong  m_DifficultyLimit;
     BLOCK_T m_LastBlockThatWasChecked;
 
     bool verifyProofOfWork() const;
@@ -14,18 +14,14 @@ class Server
     {return (i_SuggestedBlock == g_BlockChainHead) || (m_LastBlockThatWasChecked == g_SuggestedBlock);}
     void appendNewBlock(BLOCK_T& i_NewBlockChinHead) const;
     void printBlockChainHead(const BLOCK_T& i_BlockChainHead) const;
-
-
+    bool  checkSrcAndBlockHash(const BLOCK_T& i_SuggestedBlock, ulong i_CheckSum) const;
 
 public:
-    void CreateGenesisBlock(BLOCK_T& i_Block);
+    static bool s_ReadyToAppendBlock;
+    void SetDifficultyLimit(ulong i_DifficultyLimit);
+    void CreateGenesisBlock(BLOCK_T& i_Block,int i_Difficulty);
     static void* ServerFlow(void* argv);
     void ManageBlockChain();
-    Server()
-    {
-        m_DifficultyLimit = pow((float)2,(float)(32-g_BlockChainHead.difficulty));
-        CreateGenesisBlock(m_LastBlockThatWasChecked);
-    }
 };
 
 #endif // SERVER_HPP
